@@ -23,6 +23,9 @@ function App() {
   const [selectedTask, setSelectedTask] = useState(null)
   const [draggedTask, setDraggedTask] = useState(null)
   const [toast, setToast] = useState('')
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [workspaceOpen, setWorkspaceOpen] = useState(false)
   const totalTasks = useMemo(() => Object.keys(state.tasks).length, [state.tasks])
 
   const notify = (message) => {
@@ -57,7 +60,7 @@ function App() {
   const updateTask = (task) => setState((current) => ({ ...current, tasks: { ...current.tasks, [task.id]: task } }))
 
   const frameContent = {
-    board: <BoardFrame state={state} setFrame={setFrame} selectedTask={selectedTask} setSelectedTask={setSelectedTask} draggedTask={draggedTask} setDraggedTask={setDraggedTask} moveTask={moveTask} addTask={addTask} addColumn={addColumn} />,
+    board: <BoardFrame state={state} setFrame={setFrame} notify={notify} selectedTask={selectedTask} setSelectedTask={setSelectedTask} draggedTask={draggedTask} setDraggedTask={setDraggedTask} moveTask={moveTask} addTask={addTask} addColumn={addColumn} />,
     gantt: <GanttFrame state={state} notify={notify} />,
     integrations: <IntegrationsFrame notify={notify} />,
     settings: <SettingsFrame notify={notify} />,
@@ -68,8 +71,8 @@ function App() {
       <Sidebar frame={frame} setFrame={setFrame} />
       <main className="ml-[248px] min-h-screen">
         <header className="flex h-[84px] items-center justify-between border-b border-ground px-10">
-          <div className="flex items-center gap-4"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-voltage"><Zap size={19} fill="currentColor" /></div><div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-carbon/45">Workspace</p><h1 className="font-display text-lg font-semibold">Product voltage</h1></div><ChevronDown size={16} className="text-carbon/40" /></div>
-          <div className="flex items-center gap-5"><IconButton aria-label="Abrir notificaciones" onClick={() => notify('No hay notificaciones nuevas')}><Bell size={18} /></IconButton><div className="h-7 w-px bg-ground" /><div className="flex items-center gap-2"><Avatar initials="LC" /><span className="text-sm font-semibold">Laura C.</span><ChevronDown size={14} className="text-carbon/40" /></div></div>
+          <div className="relative"><button className="flex items-center gap-4 rounded-xl px-2 py-1 text-left transition hover:bg-white" onClick={() => setWorkspaceOpen((open) => !open)}><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-voltage"><Zap size={19} fill="currentColor" /></div><div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-carbon/45">Workspace</p><h1 className="font-display text-lg font-semibold">Product voltage</h1></div><ChevronDown size={16} className="text-carbon/40" /></button>{workspaceOpen && <Dropdown className="left-0 top-14 w-56"><p className="dropdown-label">Tus workspaces</p><button className="dropdown-item active" onClick={() => setWorkspaceOpen(false)}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-voltage text-xs font-bold">P</span><span><strong>Product voltage</strong><small>Workspace actual</small></span></button><button className="dropdown-item" onClick={() => notify('Creación de workspace disponible próximamente')}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ground text-lg">+</span><span><strong>Nuevo workspace</strong><small>Conecta otro equipo</small></span></button></Dropdown>}</div>
+          <div className="flex items-center gap-5"><div className="relative"><IconButton aria-label="Abrir notificaciones" onClick={() => setNotificationsOpen((open) => !open)}><Bell size={18} /><span className="notification-dot" /> </IconButton>{notificationsOpen && <NotificationsPanel close={() => setNotificationsOpen(false)} notify={notify} />}</div><div className="h-7 w-px bg-ground" /><div className="relative"><button className="flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-white" onClick={() => setUserMenuOpen((open) => !open)}><Avatar initials="LC" /><span className="text-sm font-semibold">Laura C.</span><ChevronDown size={14} className="text-carbon/40" /></button>{userMenuOpen && <UserMenu close={() => setUserMenuOpen(false)} setFrame={setFrame} notify={notify} />}</div></div>
         </header>
         <div className="px-10 pb-12 pt-9">
           <div className="mb-8 flex items-end justify-between"><div><div className="mb-3 flex items-center gap-2 text-xs font-semibold text-carbon/45"><span>Proyectos</span><span>/</span><span className="text-carbon">Atlas mobile</span></div><h2 className="font-display text-[32px] font-semibold tracking-[-0.04em]">{frame === 'board' ? 'Sprint 24 · Energía en movimiento' : navigation.find((item) => item.id === frame)?.label}</h2><p className="mt-2 text-sm text-carbon/55">Construye, conecta y entrega sin perder la carga.</p></div><div className="flex items-center gap-3"><Button variant="secondary" onClick={() => notify('Enlace de colaboración copiado')}><Users size={15} /> Compartir</Button><Button onClick={() => addTask('backlog')}><Zap size={15} /> Nueva tarea</Button></div></div>
@@ -81,6 +84,19 @@ function App() {
       {selectedTask && <TaskModal task={state.tasks[selectedTask]} close={() => setSelectedTask(null)} updateTask={updateTask} notify={notify} />}
     </div>
   )
+}
+
+function Dropdown({ children, className = '' }) {
+  return <div className={`dropdown-panel ${className}`}>{children}</div>
+}
+
+function NotificationsPanel({ close, notify }) {
+  return <Dropdown className="right-0 top-12 w-80"><div className="flex items-center justify-between border-b border-ground px-4 py-3"><strong className="text-sm">Notificaciones</strong><button className="text-[10px] font-bold text-carbon/45 hover:text-carbon" onClick={() => notify('Notificaciones marcadas como leídas')}>Marcar leídas</button></div><div className="space-y-1 p-2"><button className="notification-item" onClick={() => { notify('Revisión abierta'); close() }}><span className="notification-badge bg-[#d7c2fa]">LC</span><span><strong>Laura comentó en una tarea</strong><small>Hace 8 min · Tokens de diseño voltage</small></span><i /></button><button className="notification-item" onClick={() => { notify('Sprint actualizado'); close() }}><span className="notification-badge bg-[#b9e3d2]">JP</span><span><strong>José actualizó el sprint</strong><small>Hace 24 min · 3 puntos completados</small></span><i /></button></div><button className="w-full border-t border-ground px-4 py-3 text-center text-xs font-bold text-carbon/55 hover:bg-paper" onClick={() => { notify('Todas las notificaciones están visibles'); close() }}>Ver todas las notificaciones</button></Dropdown>
+}
+
+function UserMenu({ close, setFrame, notify }) {
+  const goTo = (frame) => { setFrame(frame); close() }
+  return <Dropdown className="right-0 top-12 w-56"><div className="border-b border-ground px-4 py-3"><p className="text-sm font-bold">Laura C.</p><p className="mt-1 text-xs text-carbon/50">Product lead</p></div><div className="p-2"><button className="dropdown-item" onClick={() => { notify('Perfil seleccionado'); close() }}>Mi perfil</button><button className="dropdown-item" onClick={() => goTo('settings')}>Configuración</button><button className="dropdown-item" onClick={() => notify('Preferencias de ayuda abiertas')}>Ayuda y atajos</button></div><button className="w-full border-t border-ground px-4 py-3 text-left text-xs font-bold text-[#b05d46] hover:bg-[#fff1ed]" onClick={() => { notify('La sesión demo sigue activa'); close() }}>Cerrar sesión demo</button></Dropdown>
 }
 
 function Sidebar({ frame, setFrame }) {
