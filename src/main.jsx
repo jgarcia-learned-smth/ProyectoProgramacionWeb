@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Activity, Bell, CalendarDays, ChevronDown, CircleHelp, Command, LayoutDashboard, PlugZap, Settings2, Users, X, Zap } from 'lucide-react'
+import { Activity, Bell, CalendarDays, ChevronDown, CircleHelp, LayoutDashboard, PlugZap, Settings2, Users, X, Zap } from 'lucide-react'
 import { initialState } from './app-data.jsx'
 import { Avatar, Button, IconButton, SprintProgress } from './components/Shared.jsx'
 import { addTaskComment, assignTaskRole, saveTask } from './services/mockApi.js'
 import BoardFrame from './frames/BoardFrame.jsx'
 import GanttFrame from './frames/GanttFrame.jsx'
 import IntegrationsFrame from './frames/IntegrationsFrame.jsx'
-import ApiFrame from './frames/ApiFrame.jsx'
 import SettingsFrame from './frames/SettingsFrame.jsx'
 import './styles.css'
 
@@ -15,7 +14,6 @@ const navigation = [
   { id: 'board', label: 'Tablero', icon: LayoutDashboard, count: '24' },
   { id: 'gantt', label: 'Plan temporal', icon: CalendarDays },
   { id: 'integrations', label: 'Integraciones', icon: PlugZap },
-  { id: 'api', label: 'API & webhooks', icon: Command },
   { id: 'settings', label: 'Configuración', icon: Settings2 },
 ]
 
@@ -62,7 +60,6 @@ function App() {
     board: <BoardFrame state={state} setFrame={setFrame} selectedTask={selectedTask} setSelectedTask={setSelectedTask} draggedTask={draggedTask} setDraggedTask={setDraggedTask} moveTask={moveTask} addTask={addTask} addColumn={addColumn} />,
     gantt: <GanttFrame state={state} notify={notify} />,
     integrations: <IntegrationsFrame notify={notify} />,
-    api: <ApiFrame notify={notify} />,
     settings: <SettingsFrame notify={notify} />,
   }
 
