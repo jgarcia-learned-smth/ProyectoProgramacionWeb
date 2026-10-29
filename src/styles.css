@@ -13,6 +13,7 @@ button { font: inherit; }
 .button-primary:hover { background: #403d32; box-shadow: 0 0 0 4px rgba(250,215,73,.28); }
 .button-secondary { border: 1px solid #D8D5CB; border-radius: 10px; background: rgba(255,255,255,.45); padding: 10px 14px; font-size: 12px; font-weight: 700; }
 .button-secondary:hover, .icon-button:hover { background: #fff; border-color: #aaa69b; }
+.button-primary:disabled, .button-secondary:disabled { cursor: wait; opacity: .55; }
 .icon-button { border-radius: 8px; padding: 8px; color: rgba(42,40,33,.5); }
 .side-link { width: 100%; border-radius: 9px; padding: 10px 12px; color: rgba(42,40,33,.58); font-size: 12px; font-weight: 600; text-align: left; }
 .side-link:hover { background: rgba(255,255,255,.6); color: #2A2821; }
@@ -22,6 +23,7 @@ button { font: inherit; }
 .filter-button.active { border-color: #D8D5CB; background: #fff; color: #2A2821; }
 .kanban-column { min-height: 460px; border-radius: 15px; background: rgba(238,237,232,.72); padding: 16px; transition: background .2s ease; }
 .kanban-column.drag-active { background: rgba(250,215,73,.12); }
+.kanban-column > .button-secondary { width: 100%; justify-content: center; margin-top: 16px; border-style: dashed; color: rgba(42,40,33,.4); }
 .task-card { border: 1px solid #e5e2da; border-radius: 12px; background: #fff; padding: 14px; box-shadow: 0 4px 14px rgba(42,40,33,.04); transition: transform .18s ease, box-shadow .18s ease; }
 .task-card:hover { transform: translateY(-2px); box-shadow: 0 7px 20px rgba(42,40,33,.1), 0 0 0 3px rgba(250,215,73,.22); }
 .tag { display: inline-flex; border-radius: 5px; background: #ecebe6; padding: 4px 7px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: rgba(42,40,33,.6); }
@@ -32,3 +34,12 @@ button { font: inherit; }
 .gantt-days { display: grid; grid-template-columns: repeat(12, 1fr); height: 40px; align-items: center; color: rgba(42,40,33,.4); font-family: 'DM Mono', monospace; font-size: 10px; text-align: center; }
 .gantt-chart { overflow: hidden; background-image: linear-gradient(to right, rgba(216,213,203,.55) 1px, transparent 1px); background-size: 8.333% 100%; }
 .gantt-bar { position: absolute; top: 17px; left: 2%; height: 20px; border-radius: 6px; padding: 3px 8px; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; }
+.integration-card { border: 1px solid #D8D5CB; border-radius: 16px; background: rgba(255,255,255,.65); padding: 20px; transition: transform .18s ease, box-shadow .18s ease; }
+.integration-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(42,40,33,.07), 0 0 0 3px rgba(250,215,73,.2); }
+.integration-icon { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 14px; }
+.integration-card .button-secondary, .integration-card .button-primary { margin-top: 24px; }
+.empty-state { display: flex; min-height: 330px; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed #D8D5CB; border-radius: 16px; background: rgba(255,255,255,.4); text-align: center; }
+.settings-row { display: flex; width: 100%; align-items: center; gap: 14px; border-radius: 13px; padding: 14px; text-align: left; transition: background .18s ease; }
+.settings-row:hover, .settings-row.selected { background: #f1f0eb; }
+.settings-row + .settings-row { margin-top: 4px; }
+.settings-row svg { color: rgba(42,40,33,.6); }
