@@ -1,4 +1,4 @@
-import { Bell, Check, Globe2, LockKeyhole, Palette, Save, UserRound } from 'lucide-react'
+import { Bell, Check, Globe2, LockKeyhole, Palette, Save, UserRound, Zap } from 'lucide-react'
 import { Button, FrameHeader } from '../components/Shared.jsx'
 
 const settings = [
