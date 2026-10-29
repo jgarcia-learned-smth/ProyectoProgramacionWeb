@@ -1,9 +1,10 @@
+import React from 'react'
 import { people } from '../app-data.jsx'
 
-export function Avatar({ initials, className = '' }) {
+export const Avatar = React.memo(function Avatar({ initials, className = '' }) {
   const person = people.find((item) => item.initials === initials)
   return <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-paper text-[10px] font-bold text-carbon ${person?.color || 'bg-voltage'} ${className}`}>{initials}</span>
-}
+})
 
 export function Button({ children, variant = 'primary', ...props }) {
   return <button className={variant === 'primary' ? 'button-primary' : 'button-secondary'} {...props}>{children}</button>
