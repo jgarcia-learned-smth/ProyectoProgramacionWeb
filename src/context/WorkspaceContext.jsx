@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { createColumn, createTask, getWorkspace, moveTask as moveTaskRequest, addTaskComment as addTaskCommentRequest, assignTaskRole as assignTaskRoleRequest, updateTask as updateTaskRequest } from '../services/taskService.js'
+import { createColumn, createTask, deleteColumn as deleteColumnRequest, getWorkspace, moveTask as moveTaskRequest, addTaskComment as addTaskCommentRequest, assignTaskRole as assignTaskRoleRequest, updateColumn as updateColumnRequest, updateTask as updateTaskRequest } from '../services/taskService.js'
 
 const emptyState = { columns: {}, tasks: {} }
 const WorkspaceContext = createContext(null)
@@ -82,6 +82,24 @@ export function WorkspaceProvider({ children }) {
     return column
   }), [notify, runAction])
 
+  const renameColumn = useCallback(async (columnId, title) => runAction(async () => {
+    const updatedColumn = await updateColumnRequest(columnId, { title })
+    setState((current) => ({ ...current, columns: { ...current.columns, [columnId]: { ...current.columns[columnId], ...updatedColumn, title } } }))
+    notify('Columna renombrada')
+    return updatedColumn
+  }), [notify, runAction])
+
+  const deleteColumn = useCallback(async (columnId) => runAction(async () => {
+    await deleteColumnRequest(columnId)
+    setState((current) => {
+      const columns = { ...current.columns }
+      delete columns[columnId]
+      const tasks = Object.fromEntries(Object.entries(current.tasks).filter(([, task]) => task.column_id !== columnId && !current.columns[columnId]?.taskIds.includes(task.id)))
+      return { columns, tasks }
+    })
+    notify('Columna eliminada')
+  }), [notify, runAction])
+
   const updateTask = useCallback(async (task) => runAction(async () => {
     const updatedTask = await updateTaskRequest(task.id, task)
     setState((current) => ({ ...current, tasks: { ...current.tasks, [task.id]: { ...current.tasks[task.id], ...updatedTask } } }))
@@ -100,7 +118,7 @@ export function WorkspaceProvider({ children }) {
     return result
   }), [runAction])
 
-  const value = useMemo(() => ({ state, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, updateTask, addTaskComment, assignTaskRole }), [state, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, updateTask, addTaskComment, assignTaskRole])
+  const value = useMemo(() => ({ state, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole }), [state, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole])
 
   return <WorkspaceContext.Provider value={value}>{children}{toast && <div className="fixed bottom-7 right-8 z-50 rounded-xl bg-carbon px-4 py-3 text-sm font-medium text-white shadow-xl">{toast}</div>}</WorkspaceContext.Provider>
 }
