@@ -2,6 +2,7 @@ import React from 'react'
 import { Activity, Bell, CalendarDays, ChevronDown, CircleHelp, LayoutDashboard, PlugZap, Settings2, Users, Zap } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Button, IconButton, SprintProgress } from './Shared.jsx'
+import { useWorkspace } from '../context/WorkspaceContext.jsx'
 
 const navigation = [
   { path: '/board', label: 'Tablero', icon: LayoutDashboard, count: '24' },
@@ -18,9 +19,18 @@ const pageTitles = {
   '/profile': 'Mi perfil',
 }
 
-export default function Layout({ children, totalTasks, notify, addTask }) {
+export default function Layout({ children }) {
   const location = useLocation()
+  const { state, notify, addTask } = useWorkspace()
   const title = pageTitles[location.pathname] || pageTitles['/board']
+  const totalTasks = Object.keys(state.tasks).length
+  const handleAddTask = async () => {
+    try {
+      await addTask('backlog')
+    } catch (requestError) {
+      notify(requestError.message)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-paper text-carbon">
@@ -34,7 +44,7 @@ export default function Layout({ children, totalTasks, notify, addTask }) {
               <h2 className="font-display text-[32px] font-semibold tracking-[-0.04em]">{title}</h2>
               <p className="mt-2 text-sm text-carbon/55">Construye, conecta y entrega sin perder la carga.</p>
             </div>
-            <div className="flex items-center gap-3"><Button variant="secondary" onClick={() => notify('Enlace de colaboración copiado')}><Users size={15} /> Compartir</Button><Button onClick={() => addTask('backlog')}><Zap size={15} /> Nueva tarea</Button></div>
+            <div className="flex items-center gap-3"><Button variant="secondary" onClick={() => notify('Enlace de colaboración copiado')}><Users size={15} /> Compartir</Button><Button onClick={handleAddTask}><Zap size={15} /> Nueva tarea</Button></div>
           </div>
           <SprintProgress totalTasks={totalTasks} />
           {children}
