@@ -3,6 +3,8 @@ import { Activity, Bell, CalendarDays, ChevronDown, CircleHelp, LayoutDashboard,
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Button, IconButton, SprintProgress } from './Shared.jsx'
 import { useWorkspace } from '../context/WorkspaceContext.jsx'
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../services/accountService.js'
+import { logout } from '../services/authService.js'
 
 const navigation = [
   { path: '/board', label: 'Tablero', icon: LayoutDashboard, count: '24' },
@@ -21,7 +23,7 @@ const pageTitles = {
 
 export default function Layout({ children }) {
   const location = useLocation()
-  const { state, notify, addTask } = useWorkspace()
+  const { state, profile, error, notify, loadWorkspace, addTask } = useWorkspace()
   const title = pageTitles[location.pathname] || pageTitles['/board']
   const totalTasks = Object.keys(state.tasks).length
   const handleAddTask = async () => {
@@ -36,7 +38,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-paper text-carbon">
       <Sidebar />
       <main className="ml-[248px] min-h-screen">
-        <Header notify={notify} />
+        <Header profile={profile} notify={notify} />
         <div className="px-10 pb-12 pt-9">
           <div className="mb-8 flex items-end justify-between">
             <div>
@@ -47,6 +49,7 @@ export default function Layout({ children }) {
             <div className="flex items-center gap-3"><Button variant="secondary" onClick={() => notify('Enlace de colaboración copiado')}><Users size={15} /> Compartir</Button><Button onClick={handleAddTask}><Zap size={15} /> Nueva tarea</Button></div>
           </div>
           <SprintProgress totalTasks={totalTasks} />
+          {error && <div role="alert" className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700"><span>{error.message || 'Se produjo un error inesperado.'}</span><Button variant="secondary" onClick={loadWorkspace}>Reintentar</Button></div>}
           {children}
         </div>
       </main>
@@ -54,7 +57,7 @@ export default function Layout({ children }) {
   )
 }
 
-function Header({ notify }) {
+function Header({ profile, notify }) {
   const [state, setState] = useDropdownState()
   const toggle = (key) => setState((current) => ({ workspace: false, notifications: false, user: false, [key]: !current[key] }))
 
@@ -71,7 +74,7 @@ function Header({ notify }) {
       <div className="flex items-center gap-5">
         <div className="relative"><IconButton aria-label="Abrir notificaciones" onClick={() => toggle('notifications')}><Bell size={18} /><span className="notification-dot" /></IconButton>{state.notifications && <NotificationsPanel close={() => toggle('notifications')} notify={notify} />}</div>
         <div className="h-7 w-px bg-ground" />
-        <div className="relative"><button className="flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-white" onClick={() => toggle('user')}><Avatar initials="LC" /><span className="text-sm font-semibold">Laura C.</span><ChevronDown size={14} className="text-carbon/40" /></button>{state.user && <UserMenu close={() => toggle('user')} notify={notify} />}</div>
+        <div className="relative"><button className="flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-white" onClick={() => toggle('user')}><Avatar initials={getInitials(profile?.name)} /><span className="text-sm font-semibold">{profile?.name || 'Cargando...'}</span><ChevronDown size={14} className="text-carbon/40" /></button>{state.user && <UserMenu profile={profile} close={() => toggle('user')} notify={notify} />}</div>
       </div>
     </header>
   )
@@ -91,10 +94,59 @@ function Dropdown({ children, className = '' }) {
 }
 
 function NotificationsPanel({ close, notify }) {
-  return <Dropdown className="right-0 top-12 w-80"><div className="flex items-center justify-between border-b border-ground px-4 py-3"><strong className="text-sm">Notificaciones</strong><button className="text-[10px] font-bold text-carbon/45 hover:text-carbon" onClick={() => notify('Notificaciones marcadas como leídas')}>Marcar leídas</button></div><div className="space-y-1 p-2"><button className="notification-item" onClick={() => { notify('Revisión abierta'); close() }}><span className="notification-badge bg-[#d7c2fa]">LC</span><span><strong>Laura comentó en una tarea</strong><small>Hace 8 min · Tokens de diseño voltage</small></span><i /></button><button className="notification-item" onClick={() => { notify('Sprint actualizado'); close() }}><span className="notification-badge bg-[#b9e3d2]">JP</span><span><strong>José actualizó el sprint</strong><small>Hace 24 min · 3 puntos completados</small></span><i /></button></div><button className="w-full border-t border-ground px-4 py-3 text-center text-xs font-bold text-carbon/55 hover:bg-paper" onClick={() => { notify('Todas las notificaciones están visibles'); close() }}>Ver todas las notificaciones</button></Dropdown>
+  const [notifications, setNotifications] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState('')
+
+  React.useEffect(() => {
+    let active = true
+    getNotifications().then((result) => {
+      if (active) setNotifications(result.notifications || [])
+    }).catch((requestError) => {
+      if (active) setError(requestError.message || 'No se pudieron cargar las notificaciones.')
+    }).finally(() => {
+      if (active) setLoading(false)
+    })
+    return () => { active = false }
+  }, [])
+
+  const markAllRead = async () => {
+    try {
+      await markAllNotificationsRead()
+      setNotifications((current) => current.map((notification) => ({ ...notification, readAt: new Date().toISOString() })))
+      notify('Notificaciones marcadas como leídas')
+    } catch (requestError) {
+      notify(requestError.message || 'No se pudieron marcar las notificaciones.')
+    }
+  }
+
+  const markRead = async (notification) => {
+    try {
+      if (!notification.readAt) await markNotificationRead(notification.id)
+      setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, readAt: new Date().toISOString() } : item))
+      close()
+    } catch (requestError) {
+      notify(requestError.message || 'No se pudo marcar la notificación.')
+    }
+  }
+
+  return <Dropdown className="right-0 top-12 w-80"><div className="flex items-center justify-between border-b border-ground px-4 py-3"><strong className="text-sm">Notificaciones</strong><button className="text-[10px] font-bold text-carbon/45 hover:text-carbon" onClick={markAllRead}>Marcar leídas</button></div><div className="space-y-1 p-2">{loading ? <p className="px-2 py-4 text-xs text-carbon/50">Cargando notificaciones...</p> : error ? <p className="px-2 py-4 text-xs text-red-700">{error}</p> : notifications.length === 0 ? <p className="px-2 py-4 text-xs text-carbon/50">No hay notificaciones.</p> : notifications.map((notification) => <button key={notification.id} className={`notification-item ${notification.readAt ? 'opacity-60' : ''}`} onClick={() => markRead(notification)}><span className="notification-badge bg-[#d7c2fa]">!</span><span><strong>{notification.title}</strong><small>{notification.message}</small></span>{!notification.readAt && <i />}</button>)}</div><button className="w-full border-t border-ground px-4 py-3 text-center text-xs font-bold text-carbon/55 hover:bg-paper" onClick={markAllRead}>Marcar todas como leídas</button></Dropdown>
 }
 
-function UserMenu({ close, notify }) {
+function UserMenu({ profile, close, notify }) {
   const navigate = useNavigate()
-  return <Dropdown className="right-0 top-12 w-56"><div className="border-b border-ground px-4 py-3"><p className="text-sm font-bold">Laura C.</p><p className="mt-1 text-xs text-carbon/50">Product lead</p></div><div className="p-2"><button className="dropdown-item" onClick={() => { navigate('/profile'); close() }}>Mi perfil</button><button className="dropdown-item" onClick={() => { navigate('/settings'); close() }}>Configuración</button><button className="dropdown-item" onClick={() => notify('Preferencias de ayuda abiertas')}>Ayuda y atajos</button></div><button className="w-full border-t border-ground px-4 py-3 text-left text-xs font-bold text-[#b05d46] hover:bg-[#fff1ed]" onClick={() => { notify('La sesión demo sigue activa'); close() }}>Cerrar sesión demo</button></Dropdown>
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/')
+    } catch (requestError) {
+      notify(requestError.message || 'No se pudo cerrar la sesión.')
+    }
+  }
+  return <Dropdown className="right-0 top-12 w-56"><div className="border-b border-ground px-4 py-3"><p className="text-sm font-bold">{profile?.name || 'Usuario'}</p><p className="mt-1 text-xs text-carbon/50">{profile?.role || 'Miembro'}</p></div><div className="p-2"><button className="dropdown-item" onClick={() => { navigate('/profile'); close() }}>Mi perfil</button><button className="dropdown-item" onClick={() => { navigate('/settings'); close() }}>Configuración</button><button className="dropdown-item" onClick={() => { notify('La ayuda estará disponible próximamente'); close() }}>Ayuda y atajos</button></div><button className="w-full border-t border-ground px-4 py-3 text-left text-xs font-bold text-[#b05d46] hover:bg-[#fff1ed]" onClick={handleLogout}>Cerrar sesión</button></Dropdown>
+}
+
+function getInitials(name = '') {
+  const initials = name.split(/\s+/).filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+  return initials || 'U'
 }

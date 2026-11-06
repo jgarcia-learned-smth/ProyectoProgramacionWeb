@@ -2,10 +2,12 @@ import { Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Avatar, Button, EmptyState, FrameHeader } from '../components/Shared.jsx'
 import { changePassword, getProfile, updateProfile } from '../services/accountService.js'
+import { useWorkspace } from '../context/WorkspaceContext.jsx'
 
 const emptyProfile = { name: '', email: '', role: 'Miembro' }
 
 export default function ProfileFrame() {
+  const { setProfile: setGlobalProfile } = useWorkspace()
   const [profile, setProfile] = useState(emptyProfile)
   const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [isLoading, setIsLoading] = useState(true)
@@ -46,6 +48,7 @@ export default function ProfileFrame() {
     setIsSaving(true)
     try {
       await updateProfile({ name: profile.name.trim(), email: profile.email.trim() })
+      setGlobalProfile({ ...profile, name: profile.name.trim(), email: profile.email.trim() })
       if (changingPassword) await changePassword(passwords)
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setSuccess('Perfil actualizado correctamente.')

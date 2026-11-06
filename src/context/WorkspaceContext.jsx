@@ -1,5 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { createColumn, createTask, deleteColumn as deleteColumnRequest, getWorkspace, moveTask as moveTaskRequest, addTaskComment as addTaskCommentRequest, assignTaskRole as assignTaskRoleRequest, updateColumn as updateColumnRequest, updateTask as updateTaskRequest } from '../services/taskService.js'
+import { clearSession, getSession, login } from '../services/authService.js'
+import { getProfile } from '../services/accountService.js'
 
 const emptyState = { columns: {}, tasks: {} }
 const WorkspaceContext = createContext(null)
@@ -20,18 +22,42 @@ export function WorkspaceProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [toast, setToast] = useState('')
+  const [profile, setProfile] = useState(null)
+  const toastTimer = React.useRef(null)
 
   const notify = useCallback((message) => {
     setToast(message)
-    window.setTimeout(() => setToast(''), 2400)
+    if (toastTimer.current) window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(''), 2400)
+  }, [])
+
+  useEffect(() => () => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current)
   }, [])
 
   const loadWorkspace = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const workspace = await getWorkspace()
+      let workspace
+      try {
+        workspace = await getWorkspace()
+      } catch (requestError) {
+        const demoAuthEnabled = import.meta.env.VITE_DEMO_AUTH === 'true'
+        if (requestError.status !== 401 || !demoAuthEnabled || !import.meta.env.VITE_DEMO_EMAIL || !import.meta.env.VITE_DEMO_PASSWORD) {
+          throw requestError
+        }
+        clearSession()
+        await login(import.meta.env.VITE_DEMO_EMAIL, import.meta.env.VITE_DEMO_PASSWORD)
+        workspace = await getWorkspace()
+      }
       setState(normalizeWorkspace(workspace))
+      try {
+        const profilePayload = await getProfile()
+        setProfile(profilePayload.profile || profilePayload)
+      } catch {
+        setProfile(null)
+      }
     } catch (requestError) {
       setError(requestError)
     } finally {
@@ -40,7 +66,20 @@ export function WorkspaceProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    void loadWorkspace()
+    let cancelled = false
+    async function bootstrap() {
+      if (!getSession() && import.meta.env.VITE_DEMO_AUTH === 'true' && import.meta.env.VITE_DEMO_EMAIL && import.meta.env.VITE_DEMO_PASSWORD) {
+        await login(import.meta.env.VITE_DEMO_EMAIL, import.meta.env.VITE_DEMO_PASSWORD)
+      }
+      if (!cancelled) await loadWorkspace()
+    }
+    void bootstrap().catch((requestError) => {
+      if (!cancelled) {
+        setError(requestError)
+        setIsLoading(false)
+      }
+    })
+    return () => { cancelled = true }
   }, [loadWorkspace])
 
   const runAction = useCallback(async (operation) => {
@@ -118,7 +157,7 @@ export function WorkspaceProvider({ children }) {
     return result
   }), [runAction])
 
-  const value = useMemo(() => ({ state, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole }), [state, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole])
+  const value = useMemo(() => ({ state, profile, setProfile, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole }), [state, profile, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole])
 
   return <WorkspaceContext.Provider value={value}>{children}{toast && <div className="fixed bottom-7 right-8 z-50 rounded-xl bg-carbon px-4 py-3 text-sm font-medium text-white shadow-xl">{toast}</div>}</WorkspaceContext.Provider>
 }
