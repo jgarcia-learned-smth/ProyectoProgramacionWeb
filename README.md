@@ -5,6 +5,7 @@ Gantt, perfil, preferencias, integraciones y notificaciones persistentes.
 
 ## Requisitos
 
+- Python 3.10 o superior
 - Node.js 18 o superior
 - npm
 - Git
@@ -18,26 +19,25 @@ git clone https://github.com/jgarcia-learned-smth/ProyectoProgramacionWeb.git
 cd ProyectoProgramacionWeb
 ```
 
-Instala las dependencias del frontend y backend:
+Instala las dependencias del frontend:
 
 ```bash
-npm install
-cd backend
 npm install
 ```
 
-## Configuración del backend
+## Configuración del backend FastAPI
 
-Desde la carpeta `backend`:
+Desde la carpeta `backend-python`:
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 cp .env.example .env
-npm run db:generate
-npm run db:migrate -- --name init
-npm run db:seed
 ```
 
-Esto crea la base de datos SQLite local, las tablas y los datos demo.
+La base de datos SQLite, sus tablas y los datos demo se crean automáticamente al
+arrancar FastAPI.
 
 Credenciales demo:
 
@@ -72,8 +72,9 @@ Abre dos terminales.
 Terminal 1, backend:
 
 ```bash
-cd backend
-npm run dev
+cd backend-python
+source .venv/bin/activate
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
 ```
 
 API disponible en `http://localhost:8000`.
@@ -114,15 +115,15 @@ Frontend:
 npm run build
 ```
 
-Backend:
+Backend FastAPI:
 
 ```bash
-cd backend
-npm test
+cd backend-python
+python -m compileall app.py
 ```
 
-El backend usa `--test-concurrency=1` para evitar que las pruebas interfieran
-entre sí al modificar sesiones y datos demo.
+La documentación interactiva de la API está disponible en
+`http://localhost:8000/docs`.
 
 ## Estructura principal
 
@@ -132,9 +133,9 @@ src/components/       Componentes reutilizables y layout
 src/context/          Estado global del workspace
 src/frames/           Vistas principales
 src/services/         Cliente API y servicios
-backend/src/          API Express
-backend/prisma/       Esquema, migraciones y seed
-backend/tests/        Pruebas automatizadas del backend
+backend-python/      API FastAPI y SQLite
+backend/src/          Implementación Node.js anterior conservada como referencia
+backend/prisma/       Esquema de la implementación anterior
 ```
 
 ## Solución de problemas
@@ -151,21 +152,16 @@ Después recarga la aplicación.
 
 ### La base de datos no existe
 
-Ejecuta desde `backend`:
+FastAPI la crea automáticamente. Para reiniciarla, detén el servidor y elimina:
 
 ```bash
-npm run db:generate
-npm run db:migrate -- --name init
-npm run db:seed
+rm backend-python/voltage.db
 ```
 
 ### Reiniciar los datos locales
 
-Para borrar y recrear la base de datos de desarrollo:
+El siguiente arranque vuelve a crear las tablas y el seed demo.
 
 ```bash
-cd backend
-npm run db:reset
+rm backend-python/voltage.db
 ```
-
-Este comando elimina los datos locales y vuelve a ejecutar el seed.

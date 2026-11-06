@@ -23,3 +23,8 @@ pnpm-debug.log*
 
 # Local backend database
 backend/prisma/*.db*
+
+# Local Python backend data
+backend-python/.venv/
+backend-python/*.db
+backend-python/__pycache__/
