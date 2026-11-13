@@ -29,6 +29,8 @@ export async function login(email, password) {
   return session
 }
 
+export const getCurrentUser = () => apiRequest('/auth/me')
+
 export async function logout() {
   try {
     await apiRequest('/auth/logout', { method: 'POST' })

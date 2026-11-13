@@ -4,7 +4,6 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Button, IconButton, SprintProgress } from './Shared.jsx'
 import { useWorkspace } from '../context/WorkspaceContext.jsx'
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../services/accountService.js'
-import { logout } from '../services/authService.js'
 
 const navigation = [
   { path: '/board', label: 'Tablero', icon: LayoutDashboard, count: '24' },
@@ -23,7 +22,7 @@ const pageTitles = {
 
 export default function Layout({ children }) {
   const location = useLocation()
-  const { state, profile, error, notify, loadWorkspace, addTask } = useWorkspace()
+  const { state, profile, error, notify, loadWorkspace, addTask, signOut } = useWorkspace()
   const title = pageTitles[location.pathname] || pageTitles['/board']
   const totalTasks = Object.keys(state.tasks).length
   const handleAddTask = async () => {
@@ -38,7 +37,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-paper text-carbon">
       <Sidebar />
       <main className="ml-[248px] min-h-screen">
-        <Header profile={profile} notify={notify} />
+        <Header profile={profile} notify={notify} signOut={signOut} />
         <div className="px-10 pb-12 pt-9">
           <div className="mb-8 flex items-end justify-between">
             <div>
@@ -57,7 +56,7 @@ export default function Layout({ children }) {
   )
 }
 
-function Header({ profile, notify }) {
+function Header({ profile, notify, signOut }) {
   const [state, setState] = useDropdownState()
   const toggle = (key) => setState((current) => ({ workspace: false, notifications: false, user: false, [key]: !current[key] }))
 
@@ -74,7 +73,7 @@ function Header({ profile, notify }) {
       <div className="flex items-center gap-5">
         <div className="relative"><IconButton aria-label="Abrir notificaciones" onClick={() => toggle('notifications')}><Bell size={18} /><span className="notification-dot" /></IconButton>{state.notifications && <NotificationsPanel close={() => toggle('notifications')} notify={notify} />}</div>
         <div className="h-7 w-px bg-ground" />
-        <div className="relative"><button className="flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-white" onClick={() => toggle('user')}><Avatar initials={getInitials(profile?.name)} /><span className="text-sm font-semibold">{profile?.name || 'Cargando...'}</span><ChevronDown size={14} className="text-carbon/40" /></button>{state.user && <UserMenu profile={profile} close={() => toggle('user')} notify={notify} />}</div>
+        <div className="relative"><button className="flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-white" onClick={() => toggle('user')}><Avatar initials={getInitials(profile?.name)} /><span className="text-sm font-semibold">{profile?.name || 'Cargando...'}</span><ChevronDown size={14} className="text-carbon/40" /></button>{state.user && <UserMenu profile={profile} close={() => toggle('user')} notify={notify} signOut={signOut} />}</div>
       </div>
     </header>
   )
@@ -133,11 +132,11 @@ function NotificationsPanel({ close, notify }) {
   return <Dropdown className="right-0 top-12 w-80"><div className="flex items-center justify-between border-b border-ground px-4 py-3"><strong className="text-sm">Notificaciones</strong><button className="text-[10px] font-bold text-carbon/45 hover:text-carbon" onClick={markAllRead}>Marcar leídas</button></div><div className="space-y-1 p-2">{loading ? <p className="px-2 py-4 text-xs text-carbon/50">Cargando notificaciones...</p> : error ? <p className="px-2 py-4 text-xs text-red-700">{error}</p> : notifications.length === 0 ? <p className="px-2 py-4 text-xs text-carbon/50">No hay notificaciones.</p> : notifications.map((notification) => <button key={notification.id} className={`notification-item ${notification.readAt ? 'opacity-60' : ''}`} onClick={() => markRead(notification)}><span className="notification-badge bg-[#d7c2fa]">!</span><span><strong>{notification.title}</strong><small>{notification.message}</small></span>{!notification.readAt && <i />}</button>)}</div><button className="w-full border-t border-ground px-4 py-3 text-center text-xs font-bold text-carbon/55 hover:bg-paper" onClick={markAllRead}>Marcar todas como leídas</button></Dropdown>
 }
 
-function UserMenu({ profile, close, notify }) {
+function UserMenu({ profile, close, notify, signOut }) {
   const navigate = useNavigate()
   const handleLogout = async () => {
     try {
-      await logout()
+      await signOut()
       navigate('/')
     } catch (requestError) {
       notify(requestError.message || 'No se pudo cerrar la sesión.')

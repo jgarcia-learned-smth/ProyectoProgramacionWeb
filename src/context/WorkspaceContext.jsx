@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { createColumn, createTask, deleteColumn as deleteColumnRequest, getWorkspace, moveTask as moveTaskRequest, addTaskComment as addTaskCommentRequest, assignTaskRole as assignTaskRoleRequest, updateColumn as updateColumnRequest, updateTask as updateTaskRequest } from '../services/taskService.js'
-import { clearSession, getSession, login } from '../services/authService.js'
+import { clearSession, getCurrentUser, getSession, login as loginRequest, logout as logoutRequest } from '../services/authService.js'
 import { getProfile } from '../services/accountService.js'
 
 const emptyState = { columns: {}, tasks: {} }
@@ -19,6 +19,8 @@ function normalizeWorkspace(payload) {
 
 export function WorkspaceProvider({ children }) {
   const [state, setState] = useState(emptyState)
+  const [authStatus, setAuthStatus] = useState('loading')
+  const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [toast, setToast] = useState('')
@@ -39,18 +41,7 @@ export function WorkspaceProvider({ children }) {
     setIsLoading(true)
     setError(null)
     try {
-      let workspace
-      try {
-        workspace = await getWorkspace()
-      } catch (requestError) {
-        const demoAuthEnabled = import.meta.env.VITE_DEMO_AUTH === 'true'
-        if (requestError.status !== 401 || !demoAuthEnabled || !import.meta.env.VITE_DEMO_EMAIL || !import.meta.env.VITE_DEMO_PASSWORD) {
-          throw requestError
-        }
-        clearSession()
-        await login(import.meta.env.VITE_DEMO_EMAIL, import.meta.env.VITE_DEMO_PASSWORD)
-        workspace = await getWorkspace()
-      }
+      const workspace = await getWorkspace()
       setState(normalizeWorkspace(workspace))
       try {
         const profilePayload = await getProfile()
@@ -65,20 +56,50 @@ export function WorkspaceProvider({ children }) {
     }
   }, [])
 
+  const signIn = useCallback(async (email, password) => {
+    const session = await loginRequest(email, password)
+    setUser(session.user)
+    setAuthStatus('authenticated')
+    await loadWorkspace()
+    return session
+  }, [loadWorkspace])
+
+  const signOut = useCallback(async () => {
+    try {
+      await logoutRequest()
+    } finally {
+      clearSession()
+      setUser(null)
+      setProfile(null)
+      setState(emptyState)
+      setAuthStatus('unauthenticated')
+      setError(null)
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     async function bootstrap() {
-      if (!getSession() && import.meta.env.VITE_DEMO_AUTH === 'true' && import.meta.env.VITE_DEMO_EMAIL && import.meta.env.VITE_DEMO_PASSWORD) {
-        await login(import.meta.env.VITE_DEMO_EMAIL, import.meta.env.VITE_DEMO_PASSWORD)
+      const session = getSession()
+      if (!session?.token) {
+        setAuthStatus('unauthenticated')
+        setIsLoading(false)
+        return
       }
-      if (!cancelled) await loadWorkspace()
-    }
-    void bootstrap().catch((requestError) => {
-      if (!cancelled) {
-        setError(requestError)
+      try {
+        const result = await getCurrentUser()
+        if (cancelled) return
+        setUser(result.user)
+        setAuthStatus('authenticated')
+        await loadWorkspace()
+      } catch (requestError) {
+        if (cancelled) return
+        if (requestError.status === 401) clearSession()
+        setAuthStatus('unauthenticated')
         setIsLoading(false)
       }
-    })
+    }
+    void bootstrap()
     return () => { cancelled = true }
   }, [loadWorkspace])
 
@@ -157,7 +178,7 @@ export function WorkspaceProvider({ children }) {
     return result
   }), [runAction])
 
-  const value = useMemo(() => ({ state, profile, setProfile, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole }), [state, profile, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole])
+  const value = useMemo(() => ({ state, authStatus, user, signIn, signOut, profile, setProfile, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole }), [state, authStatus, user, signIn, signOut, profile, isLoading, error, toast, notify, loadWorkspace, addTask, moveTask, addColumn, renameColumn, deleteColumn, updateTask, addTaskComment, assignTaskRole])
 
   return <WorkspaceContext.Provider value={value}>{children}{toast && <div className="fixed bottom-7 right-8 z-50 rounded-xl bg-carbon px-4 py-3 text-sm font-medium text-white shadow-xl">{toast}</div>}</WorkspaceContext.Provider>
 }

@@ -54,16 +54,16 @@ Desde la raíz del proyecto:
 cp .env.example .env.local
 ```
 
-Para activar el inicio de sesión demo automático, deja estas variables:
+El inicio de sesión se realiza desde la pantalla inicial con una cuenta de la
+base de datos. Para probarlo, usa el usuario demo:
 
 ```text
-VITE_API_BASE_URL=http://localhost:8000/api
-VITE_DEMO_AUTH=true
-VITE_DEMO_EMAIL=laura@example.com
-VITE_DEMO_PASSWORD=demo-password
+Correo: laura@example.com
+Contraseña: demo-password
 ```
 
-No uses `VITE_DEMO_AUTH=true` en producción.
+El frontend guarda la sesión recibida del backend y valida el token antes de
+mostrar el dashboard. No se inicia sesión automáticamente.
 
 ## Iniciar el proyecto
 
@@ -95,7 +95,7 @@ curl http://localhost:8000/api/health
 
 ## Funcionalidades
 
-- Autenticación y sesiones con tokens Bearer.
+- Login con verificación de credenciales y sesiones autenticadas con tokens Bearer.
 - Workspace persistente con SQLite y Prisma.
 - Crear, editar, mover y eliminar tareas.
 - Crear, renombrar y eliminar columnas.

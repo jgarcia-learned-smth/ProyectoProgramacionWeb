@@ -9,6 +9,7 @@ import GanttFrame from './frames/GanttFrame.jsx'
 import IntegrationsFrame from './frames/IntegrationsFrame.jsx'
 import SettingsFrame from './frames/SettingsFrame.jsx'
 import ProfileFrame from './frames/ProfileFrame.jsx'
+import LoginFrame from './frames/LoginFrame.jsx'
 import './styles.css'
 
 class AppErrorBoundary extends React.Component {
@@ -27,11 +28,19 @@ class AppErrorBoundary extends React.Component {
 }
 
 function App() {
-  const { state, notify, loadWorkspace } = useWorkspace()
+  const { authStatus, signIn, state, notify, loadWorkspace } = useWorkspace()
   const [selectedTask, setSelectedTask] = useState(null)
   const task = selectedTask ? state.tasks[selectedTask] : null
 
-  return <Layout><Routes><Route path="/board" element={<BoardFrame setSelectedTask={setSelectedTask} />} /><Route path="/gantt" element={<GanttFrame state={state} notify={notify} reload={loadWorkspace} />} /><Route path="/integrations" element={<IntegrationsFrame notify={notify} />} /><Route path="/settings" element={<SettingsFrame notify={notify} />} /><Route path="/profile" element={<ProfileFrame notify={notify} />} /><Route path="/" element={<Navigate to="/board" replace />} /><Route path="*" element={<NotFound />} /></Routes>{task && <TaskModal task={task} close={() => setSelectedTask(null)} />}</Layout>
+  if (authStatus === 'loading') {
+    return <main className="flex min-h-screen items-center justify-center bg-paper text-sm text-carbon/55">Verificando sesión…</main>
+  }
+
+  if (authStatus !== 'authenticated') {
+    return <Routes><Route path="*" element={<LoginFrame signIn={signIn} />} /></Routes>
+  }
+
+  return <Layout><Routes><Route path="/board" element={<BoardFrame setSelectedTask={setSelectedTask} />} /><Route path="/gantt" element={<GanttFrame state={state} notify={notify} reload={loadWorkspace} />} /><Route path="/integrations" element={<IntegrationsFrame notify={notify} />} /><Route path="/settings" element={<SettingsFrame notify={notify} />} /><Route path="/profile" element={<ProfileFrame notify={notify} />} /><Route path="/login" element={<Navigate to="/board" replace />} /><Route path="/" element={<Navigate to="/board" replace />} /><Route path="*" element={<NotFound />} /></Routes>{task && <TaskModal task={task} close={() => setSelectedTask(null)} />}</Layout>
 }
 
 function NotFound() {

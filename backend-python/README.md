@@ -13,6 +13,8 @@ usado por el frontend React y utiliza FastAPI, SQLite y bcrypt.
 cd backend-python
 python -m venv .venv
 source .venv/bin/activate
+//para windows
+.venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
@@ -23,7 +25,7 @@ demo es `laura@example.com` con contraseña `demo-password`.
 ## Ejecución
 
 ```bash
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend-python.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
 La API queda disponible en `http://localhost:8000`. La documentación interactiva
